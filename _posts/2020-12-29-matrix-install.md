@@ -1,7 +1,7 @@
 ---
 title: "Installing Matrix Home Server w/ Postgress on Debian 10"
 date: 2020-12-29T18:00:00
-excerpt: "Basic RHEL8.1 installation, activation, autoupdate, cockpit setup"
+excerpt: "Quick Synapse Setup w/ external Proxy"
 categories:
   - blog
 tags:
