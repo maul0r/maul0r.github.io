@@ -49,6 +49,13 @@ The following changes were made:
 ```
 web_client_location: https://chat.pete.no/
 public_baseurl: https://pete.no/
+database:
+  name: psycopg2
+  args:
+    user: matrix-synapse
+    database: matrix
+    host: /run/postgresql
+    application_nae : synapse
 allow_public_rooms_over_federation: true
 filter_timeline_limit: 100
  - port: 8008
@@ -61,4 +68,67 @@ filter_timeline_limit: 100
       - names: [client, federation]
         compress: false
 admin_contact: 'mailto:webmaster@pete.no'
+url_preview_enabled: true
+url_preview_ip_range_blacklist:
+  - '127.0.0.0/8'
+  - '10.0.0.0/8'
+  - '172.16.0.0/12'
+  - '192.168.0.0/16'
+  - '100.64.0.0/10'
+  - '169.254.0.0/16'
+  - '::1/128'
+  - 'fe80::/64'
+  - 'fc00::/7'
+
+```
+
+The matrix.conf file on the external reverse proxy: 
+```
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+
+    server_name matrix.pete.no;
+
+    ssl_certificate /etc/letsencrypt/live/site-name/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/site-name/privkey.pem; # managed by Certbot
+    ssl_trusted_certificate /etc/letsencrypt/live/site-name/chain.pem; # managed by Certbot
+    ssl_stapling on; # managed by Certbot
+    ssl_stapling_verify on; # managed by Certbot
+    add_header Strict-Transport-Security "max-age=31536000" always; # managed by Certbot
+
+    location ~* ^(\/_matrix|\/_synapse\/client) {
+        proxy_pass http://internal_ip:8008;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        # Nginx by default only allows file uploads up to 1M in size
+        # Increase client_max_body_size to match max_upload_size defined in homeserver.yaml
+        client_max_body_size 50M;
+    }
+
+}
+
+server {
+
+    # For the federation port
+    listen 8448 ssl;
+    listen [::]:8448 ssl;
+
+    server_name pete.no;
+
+    ssl_certificate /etc/letsencrypt/live/base-domain/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/base-domain/privkey.pem; # managed by Certbot
+    ssl_trusted_certificate /etc/letsencrypt/live/base-domain/chain.pem; # managed by Certbot
+    ssl_stapling on; # managed by Certbot
+    ssl_stapling_verify on; # managed by Certbot
+    add_header Strict-Transport-Security "max-age=31536000" always; # managed by Certbot
+
+    location /_matrix/ {
+        proxy_pass http://interal_ip:8008;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        # Nginx by default only allows file uploads up to 1M in size
+        # Increase client_max_body_size to match max_upload_size defined in homeserver.yaml
+        client_max_body_size 50M;
+    }
+
+}
 ```
