@@ -1,0 +1,64 @@
+---
+title: "Installing Matrix Home Server w/ Postgress on Debian 10"
+date: 2020-12-29T18:00:00
+excerpt: "Basic RHEL8.1 installation, activation, autoupdate, cockpit setup"
+categories:
+  - blog
+tags:
+  - debian
+  - matrix
+  - howto
+  - basic
+---
+
+wget gnupg2 pwgen
+
+Install Postgress: 
+```
+sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+sudo apt-get update
+sudo apt-get -y install postgresql
+```
+
+Next install Synapse:
+```
+curl https://packages.matrix.org/debian/matrix-org-archive-keyring.gpg |sudo dd of=/etc/apt/trusted.gpg.d/matrix-org.gpg
+echo "deb https://packages.matrix.org/debian/ buster main" |sudo tee -a /etc/apt/sources.list
+sudo apt update && sudo apt install matrix-synapse-py3
+```
+
+During the installation a window will pop up, asking for the name of the Matrix Server. As you probably would like your matrix name to be user@domain.com instead user@matrix.domain.com configure your top level domain name here. 
+
+In order to enable passwordless logon to the database the db user needs to be the same name as the matrix-synapse user. Verify that user using ```systemctl show -pUser matrix-synapse.service```. Then create the database like so:
+
+```sudo -u postgres sh -c 'createuser matrix-synapse && createdb -O matrix-synapse -l C.UTF-8 -T template0 matrix'````
+
+Next we configure that Synapse will only start after the db has been loaded. Paste all after first line into the resulting window. This will ensure the system will not become unresponsive due to memory exhaustion. 
+```
+sudo systemctl edit matrix-synapse.service
+[Unit]
+After=network-online.target postgresql.service
+[Service]
+MemoryMax=80%
+```
+
+The configuration file for the homeserver is located in ``` /etc/matrix-synapse/homeserver.yml```
+
+The following changes were made: 
+```
+web_client_location: https://chat.pete.no/
+public_baseurl: https://pete.no/
+allow_public_rooms_over_federation: true
+filter_timeline_limit: 100
+ - port: 8008
+    tls: false
+    type: http
+    x_forwarded: true
+    bind_addresses: ['::1', 'local ip']
+
+    resources:
+      - names: [client, federation]
+        compress: false
+admin_contact: 'mailto:webmaster@pete.no'
+```
