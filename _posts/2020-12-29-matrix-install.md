@@ -132,3 +132,27 @@ server {
 
 }
 ```
+
+
+Amending the cotrun config file located at ```\etc\turnserver.cfg```
+```
+external-ip=<public-ip>/<private-ip>
+use-auth-secret
+static-auth-secret=n074C7u4llymY53Cr37dUh
+realm=domain.tld
+total-quota=1200
+no-tcp-relay
+syslog
+denied-peer-ip=10.0.0.0-10.255.255.255
+denied-peer-ip=192.168.0.0-192.168.255.255
+denied-peer-ip=172.16.0.0-172.31.255.255
+allowed-peer-ip=<matrix-server-local-ip>
+```
+
+Amending the cotrun settings in the ```\etc\matrix-synape\homeserver.yaml``` file:
+
+```
+turn_uris: [ "turn:matrix.domain.tld?transport=udp", "turn:matrix.domain.tld?transport=tcp" ]
+turn_shared_secret: "n074C7u4llymY53Cr37dUh"
+```
+
